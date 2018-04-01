@@ -185,6 +185,15 @@ public class MainActivity extends FragmentActivity {
         }
     }
 
+    ThreadProgress threadProgress=new ThreadProgress();
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        threadProgress.start();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -242,7 +251,6 @@ public class MainActivity extends FragmentActivity {
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
         imageViewProgress = viewComplex.findViewById(R.id.surfaceViewProgress);
-        new ThreadProgress().start();
 
 //        try {
 //            keyBroadcastReceiver = new KeyBroadcastReceiver();
@@ -286,7 +294,7 @@ public class MainActivity extends FragmentActivity {
         initCustomSetting();
 
         String dir = "/storage/";
-        if (strFilePath.lastIndexOf("/") > 0)
+        if (strFilePath!=null && strFilePath.lastIndexOf("/") > 0)
             dir = strFilePath.substring(0, strFilePath.lastIndexOf("/"));
 
         File dialogDir = new File(dir);

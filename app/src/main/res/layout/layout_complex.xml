@@ -264,7 +264,7 @@
         android:layout_height="40dp"
         android:layout_marginStart="2dp"
         android:background="@drawable/buttonstyle"
-        android:text="+"
+        android:text="＋"
         android:textColor="#555"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -275,7 +275,7 @@
         android:layout_height="40dp"
         android:layout_marginStart="1dp"
         android:background="@drawable/buttonstyle"
-        android:text="-"
+        android:text="—"
         android:textColor="#555"
         app:layout_constraintBottom_toBottomOf="@+id/btnSpeedUp"
         app:layout_constraintStart_toEndOf="@+id/btnSpeedUp"
