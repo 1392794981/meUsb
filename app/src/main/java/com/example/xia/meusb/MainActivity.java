@@ -32,6 +32,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -100,10 +101,9 @@ public class MainActivity extends FragmentActivity {
                     Paint paint = new Paint();
                     paint.setColor(Color.argb(0xff, 0x11, 0x11, 0x11));
                     canvas.drawRect(0, 0, width, height, paint);
-                    paint.setColor(Color.argb(0xff, 0x55, 0x55, 0x55));
+                    paint.setColor(Color.argb(0xff, 0x88, 0x88, 0x88));
                     paint.setStyle(Paint.Style.STROKE);
                     paint.setStrokeWidth(1);
-                    paint.setColor(Color.argb(0xff, 0x55, 0x55, 0x55));
                     canvas.drawRect(40, 30, 1040, 90, paint);
                     //canvas.drawRect(40, 40, 1040, 80, paint);
                     try {
@@ -185,7 +185,7 @@ public class MainActivity extends FragmentActivity {
         }
     }
 
-    ThreadProgress threadProgress=new ThreadProgress();
+    ThreadProgress threadProgress = new ThreadProgress();
 
     @Override
     protected void onResume() {
@@ -294,7 +294,7 @@ public class MainActivity extends FragmentActivity {
         initCustomSetting();
 
         String dir = "/storage/";
-        if (strFilePath!=null && strFilePath.lastIndexOf("/") > 0)
+        if (strFilePath != null && strFilePath.lastIndexOf("/") > 0)
             dir = strFilePath.substring(0, strFilePath.lastIndexOf("/"));
 
         File dialogDir = new File(dir);
@@ -734,13 +734,36 @@ public class MainActivity extends FragmentActivity {
         pointList.insertByOrder(player.getDuration());
     }
 
+    public static String encoder(String filePath) throws Exception {
+        BufferedInputStream bin = new BufferedInputStream(
+                new FileInputStream(filePath));
+        int p = (bin.read() << 8) + bin.read();
+        String code = null;
+        switch (p) {
+            case 0xefbb:
+                code = "UTF-8";
+                break;
+            case 0xfffe:
+                code = "Unicode";
+                break;
+            case 0xfeff:
+                code = "UTF-16BE";
+                break;
+            default:
+                code = "GBK";
+        }
+
+        return code;
+    }
+
     protected void loadLRC() {
         try {
             String fileName = strFilePath.substring(0, strFilePath.length() - 4) + ".lrc";
-            File file = new File(strFilePath);
+            File file = new File(fileName);
             if (file.exists()) {
-                FileReader fr = new FileReader(fileName);
-                BufferedReader br = new BufferedReader(fr);
+                FileInputStream fis = new FileInputStream(fileName);
+                InputStreamReader isr = new InputStreamReader(fis, encoder(fileName));
+                BufferedReader br = new BufferedReader(isr);
                 String str;
                 while ((str = br.readLine()) != null) {
                     Double value = Double.valueOf(str.substring(1, 3)) * 60 * 1000 + Double.valueOf(str.substring(4, 10)) * 1000;

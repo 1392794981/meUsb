@@ -147,7 +147,7 @@ class FileDialog {
         realOpenFileDialog = dialog;
         realBuilder=builder;
 
-        setBackGroundColor(Color.argb(0xff,0x77,0x77,0x77));
+        setBackGroundColor(Color.argb(0xff,0x88,0x88,0x88));
 
         WindowManager.LayoutParams params=dialog.getWindow().getAttributes();
         params.width=900;
