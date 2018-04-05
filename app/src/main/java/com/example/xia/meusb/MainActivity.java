@@ -485,6 +485,20 @@ public class MainActivity extends FragmentActivity {
                     break;
             }
         }
+        switch (event.getKeyCode()) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                viewPager.setCurrentItem(0);
+                break;
+            case KeyEvent.KEYCODE_NUMPAD_4:
+                viewPager.setCurrentItem(0);
+                break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                viewPager.setCurrentItem(1);
+                break;
+            case KeyEvent.KEYCODE_NUMPAD_6:
+                viewPager.setCurrentItem(1);
+                break;
+        }
         return super.dispatchKeyEvent(event);
     }
 
@@ -547,14 +561,19 @@ public class MainActivity extends FragmentActivity {
                 toSpeedNormal();
                 break;
 
+            case KeyEvent.KEYCODE_DEL:
+                toLongBack();
+                break;
+
             case KeyEvent.KEYCODE_MOVE_HOME:
                 toLRC();
                 break;
             case KeyEvent.KEYCODE_NUMPAD_7:
                 toLRC();
                 break;
+
             case KeyEvent.KEYCODE_NUMPAD_5:
-                toLRC();
+                txtTemp.setVisibility(txtTemp.getVisibility() == View.INVISIBLE ? View.VISIBLE : View.INVISIBLE);
                 break;
 
             case KeyEvent.KEYCODE_BACK: //不屏蔽返回建
@@ -621,19 +640,36 @@ public class MainActivity extends FragmentActivity {
         isShowText = !isShowText;
     }
 
+
     private void toBack() {
+        toBack(2000);
+    }
+
+    private void toLongBack() {
+        toBack(5000);
+    }
+
+    private void toBack(int span) {
         int pos = player.getCurrentPosition();
-        if (pos - 2000 > 0)
-            player.seekTo(pos - 2000);
+        if (pos - span > 0)
+            player.seekTo(pos - span);
         else
             player.seekTo(0);
         player.start();
     }
 
     private void toForward() {
+        toForward(2000);
+    }
+
+    private void toLongForward() {
+        toForward(5000);
+    }
+
+    private void toForward(int span) {
         int pos = player.getCurrentPosition();
-        if (pos + 2000 < player.getDuration())
-            player.seekTo(pos + 2000);
+        if (pos + span < player.getDuration())
+            player.seekTo(pos + span);
         player.start();
     }
 
