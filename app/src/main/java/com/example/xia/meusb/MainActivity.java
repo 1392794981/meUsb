@@ -45,8 +45,11 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.lang.ref.WeakReference;
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.TimeZone;
 
 public class MainActivity extends FragmentActivity {
 
@@ -63,7 +66,7 @@ public class MainActivity extends FragmentActivity {
     AudioManager audioManager;
     FileDialog fileDialog;
 
-    TextView txtFilePath, txtPosition, txtText, txtTemp;//txtVolume,
+    TextView txtFilePath, txtPosition, txtText, txtTemp, txtCurrentTime;//txtVolume,
     Button btnOpenFile, btnLRC, btnClear, btnForward, btnBack, btnRePlay, btnPlayOrPause, btnPre, btnNext, btnInsertPoint, btnDelPoint, btnShowText, btnVolumeUp, btnVolumeDown;
     Button btnSpeedUp, btnSpeedDown;
     Button btnSimple, btnComplex;
@@ -134,6 +137,17 @@ public class MainActivity extends FragmentActivity {
                             String currentPointString = String.valueOf((currentPoint / 1000) / 60) + "分" + String.valueOf((currentPoint / 1000) % 60) + "秒";
                             theActivity.txtPosition.setText(currentPointString + "->" + String.valueOf(m) + "分" + String.valueOf(s) + "秒" +
                                     " [" + "音量:" + String.valueOf(theActivity.getCurrentVolume()) + " 速度:" + String.valueOf(theActivity.playSpeed) + "]");
+
+                            Calendar cal = Calendar.getInstance();
+                            cal.setTimeZone(TimeZone.getTimeZone("GMT+8:00"));
+                            String hour="";
+                            if (cal.get(Calendar.AM_PM) == 0)
+                                hour = String.valueOf(cal.get(Calendar.HOUR));
+                            else
+                                hour = String.valueOf(cal.get(Calendar.HOUR)+12);
+                            String minute = String.valueOf(cal.get(Calendar.MINUTE));
+                            String second = String.valueOf(cal.get(Calendar.SECOND));
+                            theActivity.txtCurrentTime.setText("[当前时间："+hour+"时"+minute+"分"+second+"秒]");
 
                             if (theActivity.isShowText) {
                                 theActivity.btnShowText.setText("隐藏");
@@ -263,6 +277,7 @@ public class MainActivity extends FragmentActivity {
 
         txtFilePath = (TextView) viewComplex.findViewById(R.id.txtFilePath);
         txtPosition = (TextView) viewComplex.findViewById(R.id.txtPosition);
+        txtCurrentTime=viewComplex.findViewById(R.id.txtCurrentTime);
         txtText = viewComplex.findViewById(R.id.txtText);
 //        txtVolume = complexView.findViewById(R.id.txtVolume);
         txtTemp = viewComplex.findViewById(R.id.textView2);
