@@ -147,7 +147,7 @@ public class MainActivity extends FragmentActivity {
                                 hour = String.valueOf(cal.get(Calendar.HOUR)+12);
                             String minute = String.valueOf(cal.get(Calendar.MINUTE));
                             String second = String.valueOf(cal.get(Calendar.SECOND));
-                            theActivity.txtCurrentTime.setText("[当前时间："+hour+"时"+minute+"分"+second+"秒]");
+                            theActivity.txtCurrentTime.setText("[时间："+hour+"时"+minute+"分]");//+second+"秒]");
 
                             if (theActivity.isShowText) {
                                 theActivity.btnShowText.setText("隐藏");
