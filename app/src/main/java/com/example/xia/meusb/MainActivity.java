@@ -140,14 +140,14 @@ public class MainActivity extends FragmentActivity {
 
                             Calendar cal = Calendar.getInstance();
                             cal.setTimeZone(TimeZone.getTimeZone("GMT+8:00"));
-                            String hour="";
+                            String hour = "";
                             if (cal.get(Calendar.AM_PM) == 0)
                                 hour = String.valueOf(cal.get(Calendar.HOUR));
                             else
-                                hour = String.valueOf(cal.get(Calendar.HOUR)+12);
+                                hour = String.valueOf(cal.get(Calendar.HOUR) + 12);
                             String minute = String.valueOf(cal.get(Calendar.MINUTE));
                             String second = String.valueOf(cal.get(Calendar.SECOND));
-                            theActivity.txtCurrentTime.setText("[时间："+hour+"时"+minute+"分]");//+second+"秒]");
+                            theActivity.txtCurrentTime.setText("[时间：" + hour + "时" + minute + "分]");//+second+"秒]");
 
                             if (theActivity.isShowText) {
                                 theActivity.btnShowText.setText("隐藏");
@@ -277,7 +277,7 @@ public class MainActivity extends FragmentActivity {
 
         txtFilePath = (TextView) viewComplex.findViewById(R.id.txtFilePath);
         txtPosition = (TextView) viewComplex.findViewById(R.id.txtPosition);
-        txtCurrentTime=viewComplex.findViewById(R.id.txtCurrentTime);
+        txtCurrentTime = viewComplex.findViewById(R.id.txtCurrentTime);
         txtText = viewComplex.findViewById(R.id.txtText);
 //        txtVolume = complexView.findViewById(R.id.txtVolume);
         txtTemp = viewComplex.findViewById(R.id.textView2);
@@ -479,27 +479,33 @@ public class MainActivity extends FragmentActivity {
         }
     }
 
+    boolean isAction_Multiple = false;
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         txtTemp.setText(event.toString());
         //本函数处理onkeydown无法处理的几个键
-        String characters = event.getCharacters();//返回全角字符
-        if (characters != null) {
-            switch (characters) {
-                case "＋":
-                    toPlayOrPause();
-                    break;
-                case "－":
-                    toRePlay();
-                    break;
-                case "＊":
-                    toForward();
-                    break;
-                case "／":
-                    toBack();
-                    break;
+        if (event.getAction() == KeyEvent.ACTION_MULTIPLE) {
+            isAction_Multiple = true;
+            String characters = event.getCharacters();//返回全角字符
+            if (characters != null) {
+                switch (characters) {
+                    case "＋":
+                        toPlayOrPause();
+                        break;
+                    case "－":
+                        toRePlay();
+                        break;
+                    case "＊":
+                        toForward();
+                        break;
+                    case "／":
+                        toBack();
+                        break;
+                }
             }
         }
+
         switch (event.getKeyCode()) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 viewPager.setCurrentItem(0);
@@ -518,6 +524,27 @@ public class MainActivity extends FragmentActivity {
     }
 
     @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (!isAction_Multiple) {
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_NUMPAD_DIVIDE:
+                    toBack();
+                    break;
+                case KeyEvent.KEYCODE_NUMPAD_MULTIPLY:
+                    toForward();
+                    break;
+                case KeyEvent.KEYCODE_NUMPAD_ADD:
+                    toPlayOrPause();
+                    break;
+                case KeyEvent.KEYCODE_NUMPAD_SUBTRACT:
+                    toRePlay();
+                    break;
+            }
+        }
+        return true;
+    }
+
+    @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         //txtTemp.setText(txtTemp.getText()+"\n&&&"+String.valueOf(keyCode) + "\n&&&" + event.toString());
         switch (keyCode) {
@@ -530,6 +557,7 @@ public class MainActivity extends FragmentActivity {
                 else
                     toPlayOrPause();
                 break;
+
 
             case KeyEvent.KEYCODE_NUMPAD_9:
                 toPre();
