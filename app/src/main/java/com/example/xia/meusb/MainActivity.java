@@ -525,7 +525,8 @@ public class MainActivity extends FragmentActivity {
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (!isAction_Multiple) {
+        if (isAction_Multiple==false && isKeyDown==false) {
+            isKeyDown=false;
             switch (keyCode) {
                 case KeyEvent.KEYCODE_NUMPAD_DIVIDE:
                     toBack();
@@ -541,13 +542,19 @@ public class MainActivity extends FragmentActivity {
                     break;
             }
         }
-        return true;
+
+        isAction_Multiple=false;
+        isKeyDown=false;
+        return super.onKeyUp(keyCode, event);
     }
+
+    boolean isKeyDown=false;
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         //txtTemp.setText(txtTemp.getText()+"\n&&&"+String.valueOf(keyCode) + "\n&&&" + event.toString());
         switch (keyCode) {
+
             case KeyEvent.KEYCODE_VOLUME_UP: //音量键 上
                 toRePlay();
                 break;
@@ -558,6 +565,22 @@ public class MainActivity extends FragmentActivity {
                     toPlayOrPause();
                 break;
 
+            case KeyEvent.KEYCODE_NUMPAD_DIVIDE:
+                isKeyDown=true;
+                toBack();
+                break;
+            case KeyEvent.KEYCODE_NUMPAD_MULTIPLY:
+                isKeyDown=true;
+                toForward();
+                break;
+            case KeyEvent.KEYCODE_NUMPAD_ADD:
+                isKeyDown=true;
+                toPlayOrPause();
+                break;
+            case KeyEvent.KEYCODE_NUMPAD_SUBTRACT:
+                isKeyDown=true;
+                toRePlay();
+                break;
 
             case KeyEvent.KEYCODE_NUMPAD_9:
                 toPre();
