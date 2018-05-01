@@ -145,13 +145,13 @@ class FileDialog {
 
         //自下义内容
         realOpenFileDialog = dialog;
-        realBuilder=builder;
+        realBuilder = builder;
 
-        setBackGroundColor(Color.argb(0xff,0x88,0x88,0x88));
+        setBackGroundColor(Color.argb(0xff, 0x88, 0x88, 0x88));
 
-        WindowManager.LayoutParams params=dialog.getWindow().getAttributes();
-        params.width=900;
-        params.height=1600;
+        WindowManager.LayoutParams params = dialog.getWindow().getAttributes();
+        params.width = 900;
+        params.height = 1600;
 //        params.setColorMode(col);
         dialog.getWindow().setAttributes(params);
 
@@ -164,15 +164,15 @@ class FileDialog {
     }
 
     public Dialog realOpenFileDialog = null;
-    public AlertDialog.Builder realBuilder=null;
+    public AlertDialog.Builder realBuilder = null;
 
     public void setBackGroundColor(int color) {
         if (realOpenFileDialog != null)
             realOpenFileDialog.getWindow().setBackgroundDrawable(new ColorDrawable(color));
     }
 
-    public void setTitle(String title){
-        if(realBuilder!=null)
+    public void setTitle(String title) {
+        if (realBuilder != null)
             realBuilder.setTitle(title);
     }
 
@@ -276,6 +276,12 @@ class FileDialog {
                     else {
 
                         boolean endsWith = fileEndsWith != null ? filename.toLowerCase().endsWith(fileEndsWith) : true;
+
+                        //自己加的，可能破坏类的可移植性
+                        if (filename.toLowerCase().endsWith("mp3") || filename.toLowerCase().endsWith("wma") || filename.toLowerCase().endsWith("wav"))
+                            endsWith = true;
+                        else
+                            endsWith = false;
 
                         return endsWith || sel.isDirectory();
 

@@ -50,6 +50,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends FragmentActivity {
 
@@ -135,7 +137,9 @@ public class MainActivity extends FragmentActivity {
                             int s = (position / 1000) % 60;
                             long currentPoint = (long) list.getCurrentPoint();
                             String currentPointString = String.valueOf((currentPoint / 1000) / 60) + "分" + String.valueOf((currentPoint / 1000) % 60) + "秒";
-                            theActivity.txtPosition.setText(currentPointString + "->" + String.valueOf(m) + "分" + String.valueOf(s) + "秒" +
+                            long lastPoint = (long) list.getLastPoint();
+                            String lastPointString = String.valueOf((lastPoint / 1000) / 60) + "分" + String.valueOf((lastPoint / 1000) % 60) + "秒";
+                            theActivity.txtPosition.setText(currentPointString + "->" + String.valueOf(m) + "分" + String.valueOf(s) + "秒/" + lastPointString +
                                     " [" + "音量:" + String.valueOf(theActivity.getCurrentVolume()) + " 速度:" + String.valueOf(theActivity.playSpeed) + "]");
 
                             Calendar cal = Calendar.getInstance();
@@ -318,7 +322,7 @@ public class MainActivity extends FragmentActivity {
         Log.v("dir", dir);
         //txtTemp.setText(strFilePath+"\n"+ dir);
 
-        fileDialog = new FileDialog(this, dialogDir, ".mp3");
+        fileDialog = new FileDialog(this, dialogDir, "");
         fileDialog.addFileListener(new FileDialog.FileSelectedListener() {
             @Override
             public void fileSelected(File file) {
@@ -525,8 +529,8 @@ public class MainActivity extends FragmentActivity {
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (isAction_Multiple==false && isKeyDown==false) {
-            isKeyDown=false;
+        if (isAction_Multiple == false && isKeyDown == false) {
+            isKeyDown = false;
             switch (keyCode) {
                 case KeyEvent.KEYCODE_NUMPAD_DIVIDE:
                     toBack();
@@ -543,12 +547,12 @@ public class MainActivity extends FragmentActivity {
             }
         }
 
-        isAction_Multiple=false;
-        isKeyDown=false;
+        isAction_Multiple = false;
+        isKeyDown = false;
         return super.onKeyUp(keyCode, event);
     }
 
-    boolean isKeyDown=false;
+    boolean isKeyDown = false;
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -566,19 +570,19 @@ public class MainActivity extends FragmentActivity {
                 break;
 
             case KeyEvent.KEYCODE_NUMPAD_DIVIDE:
-                isKeyDown=true;
+                isKeyDown = true;
                 toBack();
                 break;
             case KeyEvent.KEYCODE_NUMPAD_MULTIPLY:
-                isKeyDown=true;
+                isKeyDown = true;
                 toForward();
                 break;
             case KeyEvent.KEYCODE_NUMPAD_ADD:
-                isKeyDown=true;
+                isKeyDown = true;
                 toPlayOrPause();
                 break;
             case KeyEvent.KEYCODE_NUMPAD_SUBTRACT:
-                isKeyDown=true;
+                isKeyDown = true;
                 toRePlay();
                 break;
 
@@ -868,9 +872,20 @@ public class MainActivity extends FragmentActivity {
                 BufferedReader br = new BufferedReader(isr);
                 String str;
                 while ((str = br.readLine()) != null) {
-                    Double value = Double.valueOf(str.substring(1, 3)) * 60 * 1000 + Double.valueOf(str.substring(4, 10)) * 1000;
-                    String string = str.substring(11, str.length());
-                    pointList.insertByOrder(value, string);
+                    Pattern pattern = Pattern.compile("\\[[0-9]+:[0-9]+\\.[0-9]+\\]");
+                    Matcher matcher = pattern.matcher(str);
+                    if (matcher.find()) {
+                        String strValue = matcher.group();
+                        Double value = Double.valueOf(strValue.substring(1, 3)) * 60 * 1000 + Double.valueOf(str.substring(4, strValue.length() - 1)) * 1000;
+                        if (value > 1000) {
+                            String string = str.substring(strValue.length(), str.length());
+                            pointList.insertByOrder(value, string);
+                        }
+                    }
+
+//                    Double value = Double.valueOf(str.substring(1, 3)) * 60 * 1000 + Double.valueOf(str.substring(4, 10)) * 1000;
+//                    String string = str.substring(11, str.length());
+//                    pointList.insertByOrder(value, string);
                 }
                 br.close();
             }
