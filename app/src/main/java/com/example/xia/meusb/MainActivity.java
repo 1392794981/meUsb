@@ -3,6 +3,7 @@ package com.example.xia.meusb;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -11,8 +12,11 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.media.MediaRecorder;
+import android.media.SoundPool;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
@@ -53,11 +57,21 @@ import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static android.Manifest.permission.RECORD_AUDIO;
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+
 public class MainActivity extends FragmentActivity {
 
     private ViewPager viewPager;  //对应的viewPager
     private View viewComplex, viewSimple;
     private List<View> viewList;//view数组
+
+    private MediaPlayer recordPlayer;
+    private MediaRecorder mediaRecorder;
+    private ProgressDialog recordDialog;
+
+    String strRecordPath;
+    boolean isRecording = false;
 
     String strFilePath;
     boolean isShowText = false;
@@ -71,9 +85,9 @@ public class MainActivity extends FragmentActivity {
     TextView txtFilePath, txtPosition, txtText, txtTemp, txtCurrentTime;//txtVolume,
     Button btnOpenFile, btnLRC, btnClear, btnForward, btnBack, btnRePlay, btnPlayOrPause, btnPre, btnNext, btnInsertPoint, btnDelPoint, btnShowText, btnVolumeUp, btnVolumeDown;
     Button btnSpeedUp, btnSpeedDown;
-    Button btnSimple, btnComplex;
     TextView txtShowTextInSecond;
     Button btnShowTextInSecond, btnNextInSecond, btnAnotherNextInSecond, btnPreInSecond;
+    Button btnRecord, btnRecordPlay, btnRecordPlayStop;
 
     ImageView imageViewProgress;
 
@@ -219,7 +233,9 @@ public class MainActivity extends FragmentActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.layout_main);
 
-
+        strRecordPath = getApplicationContext().getFilesDir() + "/record.mp3";
+        mediaRecorder = new MediaRecorder();
+        recordDialog = new ProgressDialog(MainActivity.this);
         //=====================================
         viewPager = findViewById(R.id.viewpager);
         LayoutInflater inflater = getLayoutInflater();
@@ -302,13 +318,16 @@ public class MainActivity extends FragmentActivity {
         btnVolumeDown = viewComplex.findViewById(R.id.btnVolumeDown);
         btnSpeedDown = viewComplex.findViewById(R.id.btnSpeedDown);
         btnSpeedUp = viewComplex.findViewById(R.id.btnSpeedUp);
-
+        btnRecord = viewComplex.findViewById(R.id.btnRecord);
+        btnRecordPlay = viewComplex.findViewById(R.id.btnRecordPlay);
+        btnRecordPlayStop=viewComplex.findViewById(R.id.btnRecordPlayStop);
 
         txtShowTextInSecond = viewSimple.findViewById(R.id.txtShowTextInSecond);
         btnNextInSecond = viewSimple.findViewById(R.id.btnNextInSecond);
         btnShowTextInSecond = viewSimple.findViewById(R.id.btnShowTextInSecond);
         btnPreInSecond = viewSimple.findViewById(R.id.btnPreInSecond);
         btnAnotherNextInSecond = viewSimple.findViewById(R.id.btnAnotherNextInSecond);
+
 
         initCustomSetting();
 
@@ -470,6 +489,37 @@ public class MainActivity extends FragmentActivity {
                 toSpeedDown();
             }
         });
+
+        btnRecordPlay.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toPlayRecord();
+            }
+        });
+
+        btnRecord.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toRecord();
+            }
+        });
+
+        btnRecordPlayStop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toRecordPlayStop();
+            }
+        });
+    }
+
+    private void toRecordPlayStop() {
+        try {
+            recordPlayer.stop();
+            recordPlayer.release();
+        } catch (Exception e) {
+            txtTemp.setText(e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private void loadSound(String soundFilePath) {
@@ -612,18 +662,7 @@ public class MainActivity extends FragmentActivity {
                 toDelPoint();
                 break;
 
-            case KeyEvent.KEYCODE_NUMPAD_8:
-                toSpeedUp();
-                break;
-            case KeyEvent.KEYCODE_DPAD_UP:
-                toSpeedUp();
-                break;
-            case KeyEvent.KEYCODE_NUMPAD_2:
-                toSpeedDown();
-                break;
-            case KeyEvent.KEYCODE_DPAD_DOWN:
-                toSpeedDown();
-                break;
+
             case KeyEvent.KEYCODE_NUMPAD_1:
                 toSpeedNormal();
                 break;
@@ -646,11 +685,93 @@ public class MainActivity extends FragmentActivity {
                 txtTemp.setVisibility(txtTemp.getVisibility() == View.INVISIBLE ? View.VISIBLE : View.INVISIBLE);
                 break;
 
+//            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+//                toRecord();
+//                break;
+            case KeyEvent.KEYCODE_NUMPAD_2:
+                toRecord();
+                break;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                toRecord();
+                break;
+            case KeyEvent.KEYCODE_NUMPAD_8:
+                toPlayRecord();
+                break;
+            case KeyEvent.KEYCODE_DPAD_UP:
+                toPlayRecord();
+                break;
+
             case KeyEvent.KEYCODE_BACK: //不屏蔽返回建
                 super.onKeyDown(keyCode, event);
                 break;
         }
         return true;
+    }
+
+    private void toRecord() {
+        if (!isRecording)
+            toStartRecord();
+        else
+            toStopRecord();
+    }
+
+    private void toPlayRecord() {
+        try {
+            recordPlayer.stop();
+            recordPlayer.release();
+        } catch (Exception e) {
+            txtTemp.setText(e.getMessage());
+            e.printStackTrace();
+        }
+        try{
+            recordPlayer = new MediaPlayer();
+            recordPlayer.setDataSource(strRecordPath);
+            recordPlayer.prepare();
+            recordPlayer.start();
+            recordPlayer.setVolume(1f, 1f);
+        } catch (Exception e) {
+            txtTemp.setText(e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void toStopRecord() {
+        try {
+            mediaRecorder.stop();
+            mediaRecorder.reset();
+            isRecording = false;
+            txtTemp.setText(strRecordPath);
+            btnRecord.setText("开始录音");
+            btnRecord.setBackgroundColor(Color.rgb(0x11, 0x11, 0x11));
+            btnRecord.setBackgroundResource(R.drawable.buttonstyle);
+//            recordDialog.dismiss();
+        } catch (Exception e) {
+            txtTemp.setText(e.getMessage());
+        }
+    }
+
+    private void toStartRecord() {
+        if (checkPermission()) {
+            try {
+                mediaRecorder.setOutputFile(strRecordPath);
+                mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+                mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+                mediaRecorder.setAudioEncoder(MediaRecorder.OutputFormat.AMR_NB);
+                mediaRecorder.prepare();
+                mediaRecorder.start();
+                isRecording = true;
+                btnRecord.setText("停止录音");
+                btnRecord.setBackgroundColor(Color.rgb(0x44, 0x44, 0x44));
+                txtTemp.setText("正在录音....");
+//                recordDialog.setMessage("正在录音...");
+//                recordDialog.show();
+            } catch (Exception e) {
+                txtTemp.setText(e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            requestPermission();
+        }
     }
 
     private void toSpeedNormal() {
@@ -930,10 +1051,49 @@ public class MainActivity extends FragmentActivity {
     //
 
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static final int REQ_PERMISSION_AUDIO = 0x02;
     private static String[] PERMISSIONS_STORAGE = {
             "android.permission.READ_EXTERNAL_STORAGE",
             "android.permission.WRITE_EXTERNAL_STORAGE"};
 
+    private boolean checkPermission() {
+        int result = ActivityCompat.checkSelfPermission(getApplicationContext(),
+                WRITE_EXTERNAL_STORAGE);
+        int result1 = ActivityCompat.checkSelfPermission(getApplicationContext(),
+                RECORD_AUDIO);
+        return result == PackageManager.PERMISSION_GRANTED &&
+                result1 == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestPermission() {
+        ActivityCompat.requestPermissions(this, new
+                String[]{WRITE_EXTERNAL_STORAGE, RECORD_AUDIO}, REQ_PERMISSION_AUDIO);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case REQ_PERMISSION_AUDIO:
+                if (grantResults.length > 0) {
+                    boolean StoragePermission = grantResults[0] ==
+                            PackageManager.PERMISSION_GRANTED;
+                    boolean RecordPermission = grantResults[1] ==
+                            PackageManager.PERMISSION_GRANTED;
+
+                    if (StoragePermission && RecordPermission) {
+                        showToast("Permission Granted");
+                    } else {
+                        showToast("Permission  Denied");
+                    }
+                }
+                break;
+        }
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+    }
 
     public static void verifyStoragePermissions(Activity activity) {
 
@@ -945,6 +1105,7 @@ public class MainActivity extends FragmentActivity {
                 // 没有写的权限，去申请写的权限，会弹出对话框
                 ActivityCompat.requestPermissions(activity, PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE);
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
