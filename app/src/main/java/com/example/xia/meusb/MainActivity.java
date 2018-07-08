@@ -1,5 +1,6 @@
 package com.example.xia.meusb;
 
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
@@ -20,6 +21,7 @@ import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.media.SoundPool;
 import android.net.Uri;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.app.ActivityCompat;
@@ -38,6 +40,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.hiteshsondhi88.libffmpeg.ExecuteBinaryResponseHandler;
+import com.github.hiteshsondhi88.libffmpeg.FFmpeg;
+import com.github.hiteshsondhi88.libffmpeg.LoadBinaryResponseHandler;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -53,6 +59,7 @@ import java.io.OutputStreamWriter;
 import java.lang.ref.WeakReference;
 import java.math.BigDecimal;
 import java.nio.ByteOrder;
+import java.nio.channels.Selector;
 import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -68,6 +75,7 @@ public class MainActivity extends FragmentActivity {
 
     private ViewPager viewPager;  //对应的viewPager
     private View viewComplex, viewSimple;
+    private View viewPlayer;
     private List<View> viewList;//view数组
 
     private MediaPlayer recordPlayer;
@@ -76,6 +84,8 @@ public class MainActivity extends FragmentActivity {
 
     String strRecordPath;
     boolean isRecording = false;
+    //------------------------
+    private FFmpeg fFmpeg;//=FFmpeg.getInstance(this);
 
     ///--------------------------------
     private int bufferSizeInShort = 0;//缓冲区大小
@@ -112,6 +122,11 @@ public class MainActivity extends FragmentActivity {
     TextView txtShowTextInSecond;
     Button btnShowTextInSecond, btnNextInSecond, btnAnotherNextInSecond, btnPreInSecond;
     Button btnRecord, btnRecordPlay, btnRecordPlayStop;
+    Button btnForwardLesson, btnNextLesson;
+
+    Button play_pause_button, backword_button, farward_button, repeat_button, next_button, pre_button, farnext_button, farpre_button;
+    Button lrc_button, clear_button,lrcShow_button;
+    TextView lrc_text;
 
     ImageView imageViewProgress;
 
@@ -229,10 +244,21 @@ public class MainActivity extends FragmentActivity {
             readSize = audioRecord.read(audioData, 0, bufferSizeInShort);
             if (AudioRecord.ERROR_INVALID_OPERATION != readSize) {
                 try {
-                    short temp;
+                    long temp;
                     for (int i = 0; i < audioData.length; i++) {
                         temp = audioData[i];
-                        audioData[i] = (short) (temp<<2);
+
+//                        if (-0xf < temp && temp < 0xf)
+//                            temp = 0;
+
+                        temp = temp * 2;
+
+                        if (temp < -0x7fff) {
+                            temp = -0x7fff;
+                        } else if (temp > 0x7fff) {
+                            temp = 0x7fff;
+                        }
+                        audioData[i] = (short) (temp);
                     }
 
                     fos.write(Shorts2Bytes(audioData));
@@ -315,7 +341,7 @@ public class MainActivity extends FragmentActivity {
         int channels = 2;
         long byteRate = 16 * sampleRateInHz * channels / 8;
 
-        byte[] data = new byte[bufferSizeInShort*2];
+        byte[] data = new byte[bufferSizeInShort * 2];
 
         try {
             in = new FileInputStream(inFileName);
@@ -412,92 +438,116 @@ public class MainActivity extends FragmentActivity {
             switch (msg.what) {
                 case 1:
                     ImageView image = theActivity.imageViewProgress;
-                    MediaPlayer player = theActivity.player;
-                    SortedList list = theActivity.pointList;
-
-                    int width = image.getWidth();
-                    int height = image.getHeight();
-
-                    Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                    Canvas canvas = new Canvas(bitmap);
-                    Paint paint = new Paint();
-                    paint.setColor(Color.argb(0xff, 0x11, 0x11, 0x11));
-                    canvas.drawRect(0, 0, width, height, paint);
-                    paint.setColor(Color.argb(0xff, 0x88, 0x88, 0x88));
-                    paint.setStyle(Paint.Style.STROKE);
-                    paint.setStrokeWidth(1);
-                    canvas.drawRect(40, 30, 1040, 90, paint);
-                    //canvas.drawRect(40, 40, 1040, 80, paint);
-                    try {
-                        if (player.getDuration() > 0) {
-                            int duration = player.getDuration();
-                            int position = player.getCurrentPosition();
-                            int value = (position * 1000) / duration;
-                            int startValue = (int) ((Math.round(list.getValueByPosition(list.position) * 1000) / duration) + 40);
-                            paint.setStyle(Paint.Style.FILL);
-                            canvas.drawRect(startValue, 46, value + 40, 74, paint);
-                            paint.setStyle(Paint.Style.STROKE);
-                            paint.setStrokeWidth(3);
-                            for (int i = 0; i < list.getSize(); i++) {
-                                value = (int) ((Math.round(list.getValueByPosition(i)) * 1000) / duration + 40);
-                                canvas.drawLine(value, 30, value, 90, paint);
-                            }
-                            value = (int) ((Math.round(list.getValueByPosition(list.position) * 1000) / duration) + 40);
-                            paint.setStyle(Paint.Style.FILL);
-                            canvas.drawCircle(value, 82, 6, paint);
-                            if (player.getCurrentPosition() >= list.getNextPoint())
-                                player.pause();
-                            String str = "#";
-                            for (int i = 0; i < theActivity.pointList.getSize(); i++)
-                                str = str + " " + theActivity.pointList.getValueByPosition(i);
-                            int m = (position / 1000) / 60;
-                            int s = (position / 1000) % 60;
-                            long currentPoint = (long) list.getCurrentPoint();
-                            String currentPointString = String.valueOf((currentPoint / 1000) / 60) + "分" + String.valueOf((currentPoint / 1000) % 60) + "秒";
-                            long lastPoint = (long) list.getLastPoint();
-                            String lastPointString = String.valueOf((lastPoint / 1000) / 60) + "分" + String.valueOf((lastPoint / 1000) % 60) + "秒";
-                            theActivity.txtPosition.setText(currentPointString + "->" + String.valueOf(m) + "分" + String.valueOf(s) + "秒/" + lastPointString +
-                                    " [" + "音量:" + String.valueOf(theActivity.getCurrentVolume()) + " 速度:" + String.valueOf(theActivity.playSpeed) + "]");
-
-                            Calendar cal = Calendar.getInstance();
-                            cal.setTimeZone(TimeZone.getTimeZone("GMT+8:00"));
-                            String hour = "";
-                            if (cal.get(Calendar.AM_PM) == 0)
-                                hour = String.valueOf(cal.get(Calendar.HOUR));
-                            else
-                                hour = String.valueOf(cal.get(Calendar.HOUR) + 12);
-                            String minute = String.valueOf(cal.get(Calendar.MINUTE));
-                            String second = String.valueOf(cal.get(Calendar.SECOND));
-                            theActivity.txtCurrentTime.setText("[时间：" + hour + "时" + minute + "分]");//+second+"秒]");
-
-                            if (theActivity.isShowText) {
-                                theActivity.btnShowText.setText("隐藏");
-                                theActivity.btnShowTextInSecond.setText("隐");
-                                str = list.getCurrentDataString();
-                                if (str != null) {
-                                    theActivity.txtText.setText(str);
-                                    theActivity.txtShowTextInSecond.setText(str);
-                                } else {
-                                    theActivity.txtText.setText("无");
-                                    theActivity.txtShowTextInSecond.setText("");
-                                }
-                            } else {
-                                theActivity.btnShowText.setText("显示");
-                                theActivity.btnShowTextInSecond.setText("显");
-                                theActivity.txtText.setText("");
-                                theActivity.txtShowTextInSecond.setText("");
-                            }
-
-                            theActivity.txtFilePath.setText(theActivity.strFilePath);
-
-                            theActivity.showVolume();
-                        }
-                    } catch (Exception e) {
-                        theActivity.txtPosition.setText(e.getMessage());
-                    }
-                    image.setImageBitmap(bitmap);
+                    progressShow(theActivity, image);
+                    image = theActivity.findViewById(R.id.surfaceViewProgress_player);
+                    progressShow(theActivity, image);
                     break;
             }
+        }
+
+        private void progressShow(MainActivity theActivity, ImageView image) {
+            MediaPlayer player = theActivity.player;
+            SortedList list = theActivity.pointList;
+
+            int width = image.getWidth();
+            int height = image.getHeight();
+
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            Paint paint = new Paint();
+            paint.setColor(Color.argb(0xff, 0x11, 0x11, 0x11));
+            canvas.drawRect(0, 0, width, height, paint);
+            paint.setColor(Color.argb(0xff, 0x88, 0x88, 0x88));
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(1);
+            canvas.drawRect(40, 30, 1040, 90, paint);
+            //canvas.drawRect(40, 40, 1040, 80, paint);
+            try {
+                if (player.getDuration() > 0) {
+                    int duration = player.getDuration();
+                    int position = player.getCurrentPosition();
+                    int value = (position * 1000) / duration;
+                    int startValue = (int) ((Math.round(list.getValueByPosition(list.position) * 1000) / duration) + 40);
+                    paint.setStyle(Paint.Style.FILL);
+                    canvas.drawRect(startValue, 46, value + 40, 74, paint);
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(3);
+                    for (int i = 0; i < list.getSize(); i++) {
+                        value = (int) ((Math.round(list.getValueByPosition(i)) * 1000) / duration + 40);
+                        canvas.drawLine(value, 30, value, 90, paint);
+                    }
+                    value = (int) ((Math.round(list.getValueByPosition(list.position) * 1000) / duration) + 40);
+                    paint.setStyle(Paint.Style.FILL);
+                    canvas.drawCircle(value, 82, 6, paint);
+                    if (player.getCurrentPosition() >= list.getNextPoint())
+                        player.pause();
+                    String str = "#";
+                    for (int i = 0; i < theActivity.pointList.getSize(); i++)
+                        str = str + " " + theActivity.pointList.getValueByPosition(i);
+                    int m = (position / 1000) / 60;
+                    int s = (position / 1000) % 60;
+                    long currentPoint = (long) list.getCurrentPoint();
+                    String currentPointString = String.valueOf((currentPoint / 1000) / 60) + "分" + String.valueOf((currentPoint / 1000) % 60) + "秒";
+                    long lastPoint = (long) list.getLastPoint();
+                    String lastPointString = String.valueOf((lastPoint / 1000) / 60) + "分" + String.valueOf((lastPoint / 1000) % 60) + "秒";
+                    theActivity.txtPosition.setText(currentPointString + "->" + String.valueOf(m) + "分" + String.valueOf(s) + "秒/" + lastPointString +
+                            " [" + "音量:" + String.valueOf(theActivity.getCurrentVolume()) + " 速度:" + String.valueOf(theActivity.playSpeed) + "]");
+
+                    Calendar cal = Calendar.getInstance();
+                    cal.setTimeZone(TimeZone.getTimeZone("GMT+8:00"));
+                    String hour = "";
+                    if (cal.get(Calendar.AM_PM) == 0)
+                        hour = String.valueOf(cal.get(Calendar.HOUR));
+                    else
+                        hour = String.valueOf(cal.get(Calendar.HOUR) + 12);
+                    String minute = String.valueOf(cal.get(Calendar.MINUTE));
+                    String second = String.valueOf(cal.get(Calendar.SECOND));
+                    theActivity.txtCurrentTime.setText("[时间：" + hour + "时" + minute + "分]");//+second+"秒]");
+
+                    if (theActivity.isShowText) {
+                        theActivity.btnShowText.setText("隐藏");
+                        theActivity.btnShowTextInSecond.setText("隐");
+                        str = list.getCurrentDataString();
+                        if (str != null) {
+                            theActivity.txtText.setText(str);
+                            theActivity.txtShowTextInSecond.setText(str);
+                        } else {
+                            theActivity.txtText.setText("无");
+                            theActivity.txtShowTextInSecond.setText("");
+                        }
+                    } else {
+                        theActivity.btnShowText.setText("显示");
+                        theActivity.btnShowTextInSecond.setText("显");
+                        theActivity.txtText.setText("");
+                        theActivity.txtShowTextInSecond.setText("");
+                    }
+
+                    theActivity.txtFilePath.setText(theActivity.strFilePath);
+
+                    theActivity.showVolume();
+
+                    if (theActivity.player.isPlaying()) {
+                        theActivity.play_pause_button.setBackgroundResource(R.drawable.ic_pause_unpressed);
+                    } else
+                        theActivity.play_pause_button.setBackgroundResource(R.drawable.ic_play_unpressed);
+
+                    if (theActivity.blPointShow_second) {
+                        theActivity.lrc_text.setText("No");
+                        theActivity.loadLRC_Second();
+                        for (int i = 0; i < theActivity.pointsList_second.size(); i++) {
+                            if (i > 0 && (theActivity.pointsList_second.get(i).value+66) > theActivity.player.getCurrentPosition()) {
+                                theActivity.lrc_text.setText(theActivity.pointsList_second.get(i - 1).str);
+                                break;
+                            }
+                        }
+                    } else {
+                        theActivity.lrc_text.setText("");
+                    }
+                }
+            } catch (Exception e) {
+                theActivity.txtPosition.setText(e.getMessage());
+            }
+            image.setImageBitmap(bitmap);
         }
     }
 
@@ -548,10 +598,12 @@ public class MainActivity extends FragmentActivity {
         viewPager = findViewById(R.id.viewpager);
         LayoutInflater inflater = getLayoutInflater();
         viewComplex = inflater.inflate(R.layout.layout_complex, null);
+        viewPlayer = inflater.inflate(R.layout.layout_simple_player, null);
         viewSimple = inflater.inflate(R.layout.layout_simple, null);
 
         viewList = new ArrayList<>();// 将要分页显示的View装入数组中
         viewList.add(viewComplex);
+        viewList.add(viewPlayer);
         viewList.add(viewSimple);
 
 
@@ -602,6 +654,35 @@ public class MainActivity extends FragmentActivity {
 //        } catch (Exception e) {
 //            txtTemp.setText(e.getMessage());
 //        }
+        //FFmpeg
+        try {
+            fFmpeg = FFmpeg.getInstance(this.getApplicationContext());
+            fFmpeg.loadBinary(new LoadBinaryResponseHandler() {
+                @Override
+                public void onStart() {
+                    txtTemp.setText("\n开始" + txtTemp.getText());
+                }
+
+                @Override
+                public void onFailure() {
+                    txtTemp.setText("\n失败" + txtTemp.getText());
+                }
+
+                @Override
+                public void onSuccess() {
+                    txtTemp.setText("\n成功" + txtTemp.getText());
+                }
+
+                @Override
+                public void onFinish() {
+                    txtTemp.setText("\n结束" + txtTemp.getText());
+                }
+
+            });
+
+        } catch (Exception e) {
+            txtTemp.setText(e.getMessage() + txtTemp.getText());
+        }
 
         txtFilePath = (TextView) viewComplex.findViewById(R.id.txtFilePath);
         txtPosition = (TextView) viewComplex.findViewById(R.id.txtPosition);
@@ -629,6 +710,8 @@ public class MainActivity extends FragmentActivity {
         btnRecord = viewComplex.findViewById(R.id.btnRecord);
         btnRecordPlay = viewComplex.findViewById(R.id.btnRecordPlay);
         btnRecordPlayStop = viewComplex.findViewById(R.id.btnRecordPlayStop);
+        btnForwardLesson = viewComplex.findViewById(R.id.btnForwardLesson);
+        btnNextLesson = viewComplex.findViewById(R.id.btnNextLesson);
 
         txtShowTextInSecond = viewSimple.findViewById(R.id.txtShowTextInSecond);
         btnNextInSecond = viewSimple.findViewById(R.id.btnNextInSecond);
@@ -636,6 +719,18 @@ public class MainActivity extends FragmentActivity {
         btnPreInSecond = viewSimple.findViewById(R.id.btnPreInSecond);
         btnAnotherNextInSecond = viewSimple.findViewById(R.id.btnAnotherNextInSecond);
 
+
+        play_pause_button = viewPlayer.findViewById(R.id.play_button);
+        backword_button = viewPlayer.findViewById(R.id.backforward_button);
+        repeat_button = viewPlayer.findViewById(R.id.repeat_button);
+        next_button = viewPlayer.findViewById(R.id.next_button);
+        pre_button = viewPlayer.findViewById(R.id.pre_button);
+        farnext_button = viewPlayer.findViewById(R.id.farnext_butoon);
+        farpre_button = viewPlayer.findViewById(R.id.farpre_button);
+        lrc_button = viewPlayer.findViewById(R.id.LRC_button);
+        clear_button = viewPlayer.findViewById(R.id.clear_button);
+        lrc_text = viewPlayer.findViewById(R.id.lrc_text);
+        lrcShow_button=viewPlayer.findViewById(R.id.show_button);
 
         initCustomSetting();
 
@@ -658,6 +753,76 @@ public class MainActivity extends FragmentActivity {
             }
         });
 
+        lrcShow_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                blPointShow_second=!blPointShow_second;
+            }
+        });
+
+        play_pause_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toAdvancePlayOrPause();
+            }
+        });
+
+        lrc_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toLRC();
+            }
+        });
+
+        clear_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toClear();
+            }
+        });
+
+        backword_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toBack(6000);
+            }
+        });
+
+        repeat_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toRePlay();
+            }
+        });
+
+        next_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toNext();
+            }
+        });
+
+        pre_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toPre();
+            }
+        });
+
+        farnext_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toNextLesson();
+            }
+        });
+
+        farpre_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toForwardLesson();
+            }
+        });
+
         btnOpenFile.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -675,7 +840,7 @@ public class MainActivity extends FragmentActivity {
         btnPlayOrPause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                toPlayOrPause();
+                toAdvancePlayOrPause();
             }
         });
 
@@ -801,21 +966,88 @@ public class MainActivity extends FragmentActivity {
         btnRecordPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                toPlayRecord();
+//                toPlayRecord();
+                File file = new File(strFilePath + ".txt");
+                try {
+                    FileOutputStream fileOutputStream = new FileOutputStream(file);
+                    fileOutputStream.write("I am a chinese".getBytes());
+                    fileOutputStream.close();
+                    txtTemp.setText("写入成功！");
+                } catch (Exception e) {
+                    txtTemp.setText(e.getMessage());
+                }
+
             }
         });
 
         btnRecord.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                toRecord();
+                //========================
+                try {
+
+                    String wavFileName = Environment.getExternalStorageDirectory() + "/create.wav";
+                    String cmd = "-i " + strFilePath + " " + wavFileName;
+                    File file = new File(wavFileName);
+                    if (file.exists()) {
+                        file.delete();
+                    }
+                    txtTemp.setText(wavFileName + "\n" + txtTemp.getText());
+                    String[] command = cmd.split(" ");
+                    fFmpeg.execute(command, new ExecuteBinaryResponseHandler() {
+                        @Override
+                        public void onFailure(String s) {
+                            txtTemp.setText("\nFAILED with output : " + s + txtTemp.getText());
+                        }
+
+                        @Override
+                        public void onSuccess(String s) {
+                            txtTemp.setText("\nSUCCESS with output : " + s + txtTemp.getText());
+                        }
+
+                        @Override
+                        public void onProgress(String s) {
+                            txtTemp.setText("\nprogress : " + s + txtTemp.getText());
+                        }
+
+
+                        @Override
+                        public void onStart() {
+                            txtTemp.setText("\nProcessing..." + txtTemp.getText());
+                        }
+
+                        @Override
+                        public void onFinish() {
+                            txtTemp.setText("\nfinished" + txtTemp.getText());
+                        }
+                    });
+                } catch (Exception e) {
+                    // do nothing for now
+                    txtTemp.setText(e.getMessage() + "\n" + txtTemp.getText());
+                }
+//                toRecord();
             }
         });
 
         btnRecordPlayStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                toRecordPlayStop();
+//                toRecordPlayStop();
+                txtTemp.setVisibility(txtTemp.getVisibility() == View.VISIBLE ? View.INVISIBLE : View.VISIBLE);
+            }
+        });
+
+        btnForwardLesson.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toForwardLesson();
+            }
+        });
+
+        btnNextLesson.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toNextLesson();
             }
         });
     }
@@ -827,7 +1059,7 @@ public class MainActivity extends FragmentActivity {
 //            recordPlayer.stop();
 //            recordPlayer.release();
         } catch (Exception e) {
-            txtTemp.setText(e.getMessage());
+            //txtTemp.setText(e.getMessage());
             e.printStackTrace();
         }
     }
@@ -847,7 +1079,7 @@ public class MainActivity extends FragmentActivity {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        txtTemp.setText(event.toString());
+        //txtTemp.setText(event.toString());
         //本函数处理onkeydown无法处理的几个键
         if (event.getAction() == KeyEvent.ACTION_MULTIPLE) {
             isAction_Multiple = true;
@@ -855,7 +1087,7 @@ public class MainActivity extends FragmentActivity {
             if (characters != null) {
                 switch (characters) {
                     case "＋":
-                        toPlayOrPause();
+                        toAdvancePlayOrPause();
                         break;
                     case "－":
                         toRePlay();
@@ -869,22 +1101,8 @@ public class MainActivity extends FragmentActivity {
                 }
             }
         }
-
-        switch (event.getKeyCode()) {
-            case KeyEvent.KEYCODE_DPAD_LEFT:
-                viewPager.setCurrentItem(0);
-                break;
-            case KeyEvent.KEYCODE_NUMPAD_4:
-                viewPager.setCurrentItem(0);
-                break;
-            case KeyEvent.KEYCODE_DPAD_RIGHT:
-                viewPager.setCurrentItem(1);
-                break;
-            case KeyEvent.KEYCODE_NUMPAD_6:
-                viewPager.setCurrentItem(1);
-                break;
-        }
         return super.dispatchKeyEvent(event);
+
     }
 
     @Override
@@ -899,7 +1117,7 @@ public class MainActivity extends FragmentActivity {
                     toForward();
                     break;
                 case KeyEvent.KEYCODE_NUMPAD_ADD:
-                    toPlayOrPause();
+                    toAdvancePlayOrPause();
                     break;
                 case KeyEvent.KEYCODE_NUMPAD_SUBTRACT:
                     toRePlay();
@@ -920,14 +1138,26 @@ public class MainActivity extends FragmentActivity {
         switch (keyCode) {
 
             case KeyEvent.KEYCODE_VOLUME_UP: //音量键 上
-                toRePlay();
+//                toRePlay();
+                toBack(6000);
                 break;
             case KeyEvent.KEYCODE_VOLUME_DOWN: //音量键 下
-                if ((!player.isPlaying()) && (pointList.getNextPoint() <= player.getCurrentPosition()))
-                    toRePlay();
-                else
-                    toPlayOrPause();
+                toAdvancePlayOrPause();
                 break;
+
+//            case KeyEvent.KEYCODE_DPAD_LEFT:
+//                toForwardLesson();
+//                break;
+//            case KeyEvent.KEYCODE_NUMPAD_4:
+//                toForwardLesson();
+//                break;
+//            case KeyEvent.KEYCODE_DPAD_RIGHT:
+//                toNextLesson();
+//                break;
+//            case KeyEvent.KEYCODE_NUMPAD_6:
+//                toNextLesson();
+//                break;
+
 
             case KeyEvent.KEYCODE_NUMPAD_DIVIDE:
                 isKeyDown = true;
@@ -939,7 +1169,7 @@ public class MainActivity extends FragmentActivity {
                 break;
             case KeyEvent.KEYCODE_NUMPAD_ADD:
                 isKeyDown = true;
-                toPlayOrPause();
+                toAdvancePlayOrPause();
                 break;
             case KeyEvent.KEYCODE_NUMPAD_SUBTRACT:
                 isKeyDown = true;
@@ -999,16 +1229,20 @@ public class MainActivity extends FragmentActivity {
 //                toRecord();
 //                break;
             case KeyEvent.KEYCODE_NUMPAD_2:
-                toRecord();
+                toNextLesson();
+                //toRecord();
                 break;
             case KeyEvent.KEYCODE_DPAD_DOWN:
-                toRecord();
+                toNextLesson();
+//                toRecord();
                 break;
             case KeyEvent.KEYCODE_NUMPAD_8:
-                toPlayRecord();
+//                toPlayRecord();
+                toForwardLesson();
                 break;
             case KeyEvent.KEYCODE_DPAD_UP:
-                toPlayRecord();
+                toForwardLesson();
+//                toPlayRecord();
                 break;
 
             case KeyEvent.KEYCODE_BACK: //不屏蔽返回建
@@ -1016,6 +1250,25 @@ public class MainActivity extends FragmentActivity {
                 break;
         }
         return true;
+    }
+
+    private void toAdvancePlayOrPause() {
+        if ((!player.isPlaying()) && (pointList.getNextPoint() <= player.getCurrentPosition()))
+            toRePlay();
+        else
+            toPlayOrPause();
+    }
+
+    private void toNextLesson() {
+        strFilePath = FileDialog.getNextLession(strFilePath);
+        loadSound(strFilePath);
+        toRePlay();
+    }
+
+    private void toForwardLesson() {
+        strFilePath = FileDialog.getForwardLession(strFilePath);
+        loadSound(strFilePath);
+        toRePlay();
     }
 
     private void toRecord() {
@@ -1262,7 +1515,7 @@ public class MainActivity extends FragmentActivity {
                 initPoint();
             }
         } catch (Exception e) {
-            txtTemp.setText(e.getMessage());
+            //txtTemp.setText(e.getMessage());
         }
     }
 
@@ -1292,6 +1545,42 @@ public class MainActivity extends FragmentActivity {
         }
 
         return code;
+    }
+
+    ArrayList<LRCShow> pointsList_second = new ArrayList<>();
+    boolean blPointShow_second = false;
+
+    protected void loadLRC_Second() {
+        pointsList_second.clear();
+        try {
+            String fileName = strFilePath.substring(0, strFilePath.length() - 4) + ".lrc";
+            File file = new File(fileName);
+            if (file.exists()) {
+                FileInputStream fis = new FileInputStream(fileName);
+                InputStreamReader isr = new InputStreamReader(fis, encoder(fileName));
+                BufferedReader br = new BufferedReader(isr);
+                String str;
+                while ((str = br.readLine()) != null) {
+                    Pattern pattern = Pattern.compile("\\[[0-9]+:[0-9]+\\.[0-9]+\\]");
+                    Matcher matcher = pattern.matcher(str);
+                    if (matcher.find()) {
+                        String strValue = matcher.group();
+                        Double value = Double.valueOf(strValue.substring(1, 3)) * 60 * 1000 + Double.valueOf(str.substring(4, strValue.length() - 1)) * 1000;
+                        if (value > 1000) {
+                            String string = str.substring(strValue.length(), str.length());
+                            pointsList_second.add(new LRCShow(value, string));
+                        }
+                    }
+
+//                    Double value = Double.valueOf(str.substring(1, 3)) * 60 * 1000 + Double.valueOf(str.substring(4, 10)) * 1000;
+//                    String string = str.substring(11, str.length());
+//                    pointList.insertByOrder(value, string);
+                }
+                br.close();
+            }
+        } catch (Exception e) {
+            Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG);
+        }
     }
 
     protected void loadLRC() {
@@ -1365,7 +1654,8 @@ public class MainActivity extends FragmentActivity {
     private static final int REQ_PERMISSION_AUDIO = 0x02;
     private static String[] PERMISSIONS_STORAGE = {
             "android.permission.READ_EXTERNAL_STORAGE",
-            "android.permission.WRITE_EXTERNAL_STORAGE"};
+            "android.permission.WRITE_EXTERNAL_STORAGE",
+            "android.permission.MOUNT_UNMOUNT_FILESYSTEMS"};
 
     private boolean checkPermission() {
         int result = ActivityCompat.checkSelfPermission(getApplicationContext(),
@@ -1418,7 +1708,7 @@ public class MainActivity extends FragmentActivity {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Toast.makeText(null, e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 

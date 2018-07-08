@@ -8,13 +8,14 @@
     android:background="#111"
     tools:context="com.example.xia.meusb.MainActivity">
 
-    <TextView
+    <EditText
         android:id="@+id/textView2"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="120dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
+        android:fadeScrollbars="false"
+        android:scrollbarAlwaysDrawVerticalTrack="true"
         android:stateListAnimator="@null"
         android:text="TextView"
         android:textColor="#888"
@@ -178,28 +179,24 @@
 
     <Button
         android:id="@+id/btnInsertPoint"
-        android:layout_width="0dp"
+        android:layout_width="120dp"
         android:layout_height="80dp"
         android:layout_marginBottom="1dp"
         android:background="@drawable/buttonstyle"
         android:text="插入断点"
         android:textColor="#888"
         app:layout_constraintBottom_toTopOf="@+id/btnPre"
-        app:layout_constraintEnd_toEndOf="@+id/btnPre"
-        app:layout_constraintHorizontal_bias="0.875"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintStart_toStartOf="@+id/btnPre" />
 
     <Button
         android:id="@+id/btnDelPoint"
-        android:layout_width="0dp"
+        android:layout_width="120dp"
         android:layout_height="80dp"
-        android:layout_marginBottom="1dp"
         android:background="@drawable/buttonstyle"
         android:text="删除断点"
         android:textColor="#888"
         app:layout_constraintBottom_toTopOf="@+id/btnInsertPoint"
-        app:layout_constraintEnd_toEndOf="@+id/btnInsertPoint"
         app:layout_constraintStart_toStartOf="@+id/btnInsertPoint" />
 
     <TextView
@@ -235,14 +232,12 @@
         android:id="@+id/btnVolumeUp"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginBottom="1dp"
-        android:layout_marginTop="1dp"
         android:background="@drawable/buttonstyle"
         android:text="＋"
         android:textColor="#888"
         app:layout_constraintBottom_toTopOf="@+id/btnDelPoint"
         app:layout_constraintEnd_toEndOf="@+id/btnLRC"
-        app:layout_constraintStart_toStartOf="@+id/btnDelPoint"
+        app:layout_constraintStart_toStartOf="@+id/btnLRC"
         app:layout_constraintTop_toBottomOf="@+id/btnLRC" />
 
     <Button
@@ -263,7 +258,7 @@
         android:id="@+id/btnSpeedUp"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:layout_marginStart="2dp"
+        android:layout_marginStart="1dp"
         android:background="@drawable/buttonstyle"
         android:text="＋"
         android:textColor="#888"
@@ -329,6 +324,33 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintBottom_toBottomOf="@+id/btnSpeedDown"
         app:layout_constraintTop_toTopOf="@+id/btnSpeedDown" />
+
+    <Button
+        android:id="@+id/btnForwardLesson"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/buttonstyle"
+        android:text="前课"
+        android:textColor="#888"
+        app:layout_constraintBottom_toBottomOf="@+id/btnDelPoint"
+        app:layout_constraintEnd_toEndOf="@+id/btnNextLesson"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/btnNextLesson"
+        app:layout_constraintTop_toTopOf="@+id/btnDelPoint"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <Button
+        android:id="@+id/btnNextLesson"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/buttonstyle"
+        android:text="后课"
+        android:textColor="#888"
+        app:layout_constraintBottom_toTopOf="@+id/btnPre"
+        app:layout_constraintEnd_toEndOf="@+id/btnPre"
+        app:layout_constraintStart_toEndOf="@+id/btnDelPoint"
+        app:layout_constraintTop_toBottomOf="@+id/btnDelPoint" />
 
 
 </android.support.constraint.ConstraintLayout>

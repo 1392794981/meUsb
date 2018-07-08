@@ -293,6 +293,9 @@ class FileDialog {
 
             String[] fileList1 = path.list(filter);
 
+            //自己加的
+//            FileList = fileList1;
+
             for (String file : fileList1) {
 
                 r.add(file);
@@ -305,6 +308,72 @@ class FileDialog {
 
     }
 
+    //以下三个函数是自己加的
+    public static String[] FileList;
+
+    public static void initFileList(String currentFileName) {
+        String initDir = "/storage/";
+        if (currentFileName != null && currentFileName.lastIndexOf("/") > 0)
+            initDir = currentFileName.substring(0, currentFileName.lastIndexOf("/"));
+
+        File dir = new File(initDir);
+
+        FilenameFilter filter = new FilenameFilter() {
+
+            public boolean accept(File dir, String filename) {
+
+                File sel = new File(dir, filename);
+
+                if (!sel.canRead()) return false;
+                else {
+
+
+                    boolean endsWith = false;
+
+                    //自己加的，可能破坏类的可移植
+                    if (filename.toLowerCase().endsWith("mp3") || filename.toLowerCase().endsWith("wma") || filename.toLowerCase().endsWith("wav"))
+                        endsWith = true;
+                    else
+                        endsWith = false;
+
+                    return endsWith || sel.isDirectory();
+                }
+
+            }
+
+        };
+
+        FileList = dir.list(filter);
+    }
+
+    public static String getDir(String currentFileName) {
+        String initDir = "/storage/";
+        if (currentFileName != null && currentFileName.lastIndexOf("/") > 0)
+            initDir = currentFileName.substring(0, currentFileName.lastIndexOf("/"));
+        return initDir + "/";
+    }
+
+    public static String getForwardLession(String currentFileName) {
+        initFileList(currentFileName);
+        for (int i = 0; i < FileList.length; i++) {
+            if ((getDir(currentFileName) + FileList[i]).trim().equals(currentFileName.trim())) {
+                int forwardIndex = (i == 0 ? 0 : i - 1);
+                return getDir(currentFileName) + FileList[forwardIndex];
+            }
+        }
+        return getDir(currentFileName) + FileList[0];
+    }
+
+    public static String getNextLession(String currentFileName) {
+        initFileList(currentFileName);
+        for (int i = 0; i < FileList.length; i++) {
+            if ((getDir(currentFileName) + FileList[i]).trim().equals(currentFileName.trim())) {
+                int forwardIndex = (i == FileList.length - 1 ? FileList.length - 1 : i + 1);
+                return getDir(currentFileName) + FileList[forwardIndex];
+            }
+        }
+        return getDir(currentFileName) + FileList[FileList.length - 1];//+"/n"+String.valueOf(FileList.length)+"/n"+(getDir(currentFileName)+FileList[6]).trim()+"/n"+currentFileName;
+    }
 
     private File getChosenFile(String fileChosen) {
 
